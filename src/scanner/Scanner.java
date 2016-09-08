@@ -4,6 +4,7 @@ import java.io.*;
 import java.nio.charset.Charset;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.logging.Logger;
 
 /**
  * Created by abhishek on 9/1/16.
@@ -26,6 +27,7 @@ public class Scanner
     private Token current_token;
     private StringBuffer token_string;
     private char extra_char_read;
+    private Token default_Error_Token;
 
     private void init()throws FileNotFoundException
     {
@@ -33,14 +35,11 @@ public class Scanner
         this.token_string = new StringBuffer();
         this.extra_char_read = '\0';
         this.ifd = new InputFileDetail();
+        this.default_Error_Token = new Token(TokenType.ERROR,CSC512_Constants.EMPTY);
     }
 
     private void openInStream()throws FileNotFoundException
     {
-        System.out.println(ifd.file_name);
-        System.out.println(ifd.only_name);
-        System.out.println(ifd.extension);
-        System.out.println(ifd.file_path);
         Charset encode = Charset.defaultCharset();
         File in = new File(ifd.file_path);
         InputStream in_stream = new FileInputStream(in);
@@ -82,7 +81,7 @@ public class Scanner
     {
         this.current_token = readNextTokenFromFile();
 
-        if (this.current_token == null)
+        if (this.current_token != null && this.current_token.getToken_type() == TokenType.EOF)
         {
             /* No More Token Left */
             return false;
@@ -109,7 +108,7 @@ public class Scanner
             c = getNextCharFromFile();
         }
         if(c == -1)
-            return null;
+            return new Token(TokenType.EOF,CSC512_Constants.EMPTY);
         return generateToken((char)c);
     }
 
@@ -147,6 +146,11 @@ public class Scanner
         else if(isOpeningQuote(c))
         {
             res_token = formStringToken();
+        }
+        if(res_token == null)
+        {
+            default_Error_Token.setToken_name(token_string.toString());
+            res_token = default_Error_Token;
         }
         return res_token;
     }
@@ -336,13 +340,14 @@ public class Scanner
         try
         {
             read_char = input_reader.read();
+            if (read_char == -1)
+                input_reader.close();
         }
         catch (IOException ex)
         {
             System.out.print("Unexpected Error in reading the file...");
             return -1;
         }
-        //System.out.println("Read:" + (char)read_char);
         return read_char;
     }
 
@@ -367,6 +372,7 @@ public class Scanner
         }
 
         PrintWriter op = null;
+        Logger LOGGER = Logger.getLogger(Scanner.class.getCanonicalName());
 
         try
         {
@@ -383,8 +389,16 @@ public class Scanner
             while (scan.hasMoreToken())
             {
                 token = scan.getNextToken();
-                if(token == null)
-                    System.out.println("Unexpected Flow found");
+                if (token == null)
+                {
+                    LOGGER.severe("Fatal Error in scanning the code.");
+                    System.exit(CSC512_Constants.SUCCESS);
+                }
+                else if(token.getToken_type() == TokenType.ERROR)
+                {
+                    LOGGER.warning("Error in scanning the file for token:" + token.getToken_value());
+                    System.exit(CSC512_Constants.SUCCESS);
+                }
                 else
                 {
                     if(token.getToken_type() == TokenType.IDENTIFIER && !token.getToken_value().equals(CSC512_Constants.MAIN))
@@ -395,10 +409,6 @@ public class Scanner
                         op.write(token.getToken_value() + CSC512_Constants.NEW_LINE);
                     else
                         op.write(token.getToken_value() + CSC512_Constants.SPACE);
-                    //if((token.getToken_type() == TokenType.SYMBOL && (token.getToken_value().equals(";"))) ||
-                      //  token.getToken_type() == TokenType.META_CHAR)
-                        //op.println();
-                    //System.out.println("Token : " + token.getToken_value());
                 }
 
                 if(previous_token != null && previous_token.getToken_type() == TokenType.META_CHAR)
@@ -409,12 +419,13 @@ public class Scanner
         }
         catch(FileNotFoundException ex)
         {
-            ex.printStackTrace();
+            LOGGER.warning(ex.getMessage());;
         }
         finally
         {
             if (op != null)
                 op.close();
         }
+        LOGGER.info("Successfully scanned the input file " + arg[0] + " for tokens.");
     }
 }

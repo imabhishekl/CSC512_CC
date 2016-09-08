@@ -12,6 +12,7 @@ public class CSC512_Constants
     public static String MAIN         = "main";
     public static String DOT          = ".";
     public static int SUCCESS         = 0;
+    public static String EMPTY        = "";
 
     /* Reserved Keyword */
     public static String int_keyword = "int";

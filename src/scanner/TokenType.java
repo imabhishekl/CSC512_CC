@@ -10,5 +10,7 @@ public enum TokenType
     RESERVED_WORD,
     STRING,
     SYMBOL,
-    META_CHAR
+    META_CHAR,
+    EOF,
+    ERROR
 }
