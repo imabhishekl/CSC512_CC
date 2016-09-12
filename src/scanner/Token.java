@@ -2,12 +2,13 @@ package scanner;
 
 /**
  * Created by abhishek on 9/5/16.
+ * Token Class for token data storage
  */
 public class Token
 {
-    private TokenType token_type;
+    private TokenType token_type; /*Type of token i.e. id operator etc */
     private TokenSubType TokenSubType;
-    private String token_value;
+    private String token_value; /* Actual content of token */
 
     Token(TokenType token_type,String token_value)
     {

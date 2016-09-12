@@ -1,7 +1,8 @@
 package scanner;
 
 /**
- * Created by abhishek on 9/7/16.
+ * Created by abhishek on 9/5/16.
+ * Token Sub type
  */
 public enum TokenSubType
 {
