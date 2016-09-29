@@ -10,7 +10,7 @@ public class Token
     private TokenSubType TokenSubType;
     private String token_value; /* Actual content of token */
 
-    Token(TokenType token_type,String token_value)
+    public Token(TokenType token_type,String token_value)
     {
         this.token_type = token_type;
         this.token_value = token_value;
