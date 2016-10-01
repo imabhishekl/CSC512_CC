@@ -363,6 +363,7 @@ public class Parser
         System.out.println("data_decls1");
         if(id_list1())
         {
+            variableCount++;
             look_ahead_token = getNextTokenWrapper();
             if (look_ahead_token.getToken_value().equals(CSC512_Constants.SC))
             {
@@ -374,6 +375,10 @@ public class Parser
         }
         return true;
     }
+
+    /**
+     * 
+     */
 
     /**
      * <data decls> --> empty | <type name> <id list> semicolon <data decls>
@@ -405,7 +410,6 @@ public class Parser
     private boolean id_list1()
     {
         System.out.println("id_list1");
-        variableCount++;
         if (id_dash() && id_list_dash())
             return true;
         return false;
@@ -417,7 +421,6 @@ public class Parser
     private boolean id_list()
     {
         System.out.println("id_list");
-        variableCount++;
         if (id() && id_list_dash())
             return true;
         return false;
@@ -429,10 +432,10 @@ public class Parser
     private boolean id_list_dash()
     {
         System.out.println("id_list_dash");
-        variableCount++;
         look_ahead_token = getNextTokenWrapper();
         if (look_ahead_token.getToken_value().equals(CSC512_Constants.COMMA))
         {
+            variableCount++;
             consumed = true;
             if (id())
                 if (id_list_dash())
@@ -671,6 +674,7 @@ public class Parser
             }
             return false;
         }
+        statementCount--;
         return false;
     }
 
@@ -1139,7 +1143,7 @@ public class Parser
         //if (arg.length != 1)/* Argument check for file input */
         //{
           //  System.out.println("Please run the program as ");
-            //System.out.println("Parser <input_C_file>");
+            System.out.println("Parser <input_C_file>");
             //System.exit(CSC512_Constants.SUCCESS);
         //}
         java.util.Scanner cin = new java.util.Scanner(System.in);
@@ -1157,7 +1161,6 @@ public class Parser
             {
                 System.out.println(CSC512_Constants.ERROR + " parsing the file " + file_name);
             }
-
         }
         catch (FileNotFoundException e)
         {
