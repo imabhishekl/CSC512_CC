@@ -5,11 +5,14 @@ import java.util.Set;
 
 /**
  * Created by abhishek on 9/27/16.
+ * This class load some of length comparison
+ * in the if condition to sets so that the
+ * if condition are short
  */
 public class BasicGrammar
 {
-    private Set<String> type_name_sets;
-    private Set<String> comparison_op;
+    private Set<String> type_name_sets; /* Set for type name production */
+    private Set<String> comparison_op; /* Set for comparison operator */
 
     BasicGrammar()
     {
@@ -20,12 +23,13 @@ public class BasicGrammar
 
     private void init()
     {
-        /* Load Reserved Keyword */
+        /* Load Type name Keyword */
         for(TypeName typeName : TypeName.values())
         {
             type_name_sets.add(typeName.getKeyword_value());
         }
 
+        /* Load the operator keyword */
         for (Comparison_Op cop : Comparison_Op.values())
         {
             comparison_op.add(cop.getComparision_op());
@@ -40,6 +44,7 @@ public class BasicGrammar
     public boolean isCompOp(String comp_op) { return comparison_op.contains(comp_op);}
 }
 
+/* Valid Value for comparison operator*/
 enum Comparison_Op
 {
     EQUALITY("=="),
@@ -56,6 +61,7 @@ enum Comparison_Op
     public String getComparision_op() {return comparision_op;}
 }
 
+/* Valid Value for typemame keyword*/
 enum TypeName
 {
     INT("int"),
@@ -73,47 +79,5 @@ enum TypeName
     public String getKeyword_value()
     {
         return keyword_value;
-    }
-}
-
-enum Op
-{
-    PLUS('+'),
-    MINUS('-'),
-    MULT('*'),
-    DIV('/');
-
-    private char op;
-
-    Op(char val)
-    {
-        op = val;
-    }
-
-    public char getKeyword_value()
-    {
-        return op;
-    }
-}
-
-enum Brackets
-{
-    OC('{'),
-    CC('}'),
-    OS('['),
-    CS(']'),
-    OR('('),
-    CR(')');
-
-    private char bracket;
-
-    Brackets(char val)
-    {
-        bracket = val;
-    }
-
-    public char getKeyword_value()
-    {
-        return bracket;
     }
 }

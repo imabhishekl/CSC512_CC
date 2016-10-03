@@ -1,6 +1,6 @@
 package parser;
 
-import com.sun.xml.internal.ws.api.message.saaj.SaajStaxWriter;
+/* Import the packages */
 import scanner.CSC512_Constants;
 import scanner.Scanner;
 import scanner.Token;
@@ -11,10 +11,14 @@ import java.util.logging.Logger;
 
 /**
  * Created by abhishek on 9/26/16.
+ * Parser class implementation to parse the file against a grammar
+ * It scanner functionality to scan the file for token and pass it to
+ * the parser which uses the grammar scanned in recursive decent fashion
+ *
  */
 public class Parser
 {
-    private Logger LOGGER = null;
+    private Logger LOGGER = null; // Loggin of data
     private int variableCount = 0;
     private int functionCount = 0;
     private int statementCount = 0;
@@ -25,6 +29,7 @@ public class Parser
     private Token look_ahead_token = null;
     private boolean consumed = true;
 
+    /* Constructor to load the file which will be parsed */
     public Parser(String file_name) throws FileNotFoundException
     {
         this.file_name = file_name;
@@ -35,18 +40,18 @@ public class Parser
 
     public int getVariableCount() {
         return variableCount;
-    }
+    } /* Get the total variable counted */
 
     public int getFunctionCount() {
         return functionCount;
-    }
+    } /* Get the total function counted */
 
     public int getStatementCount() {
         return statementCount;
-    }
+    } /* Get the total statement counted */
 
     /**
-     *Helper Method
+     *Helper Method to detect if its an identifier or not
      */
     private boolean isID(Token token)
     {
@@ -56,6 +61,7 @@ public class Parser
             return false;
     }
 
+    /* Start the grammar parsing from here */
     public boolean isParsable()
     {
         /* Skip the meta statement */
@@ -68,9 +74,13 @@ public class Parser
         return program();
     }
 
+    /* Get the next token from the scanner.
+    *  It will read the next token only if current token is consumed
+    *  else it returns the last read token
+     */
     private Token getNextTokenWrapper()
     {
-        if (!consumed)
+        if (!consumed)/* Check if consumed or not */
         {
             System.out.println("Token read:" + look_ahead_token.getToken_value());
             return look_ahead_token;
@@ -96,6 +106,8 @@ public class Parser
         System.out.println("Token read:" + temp_token.getToken_value());
         return temp_token;
     }
+
+    /***************************************Grammar implementation for each production **********************************/
 
     /**
      * <program> -->  empty
@@ -208,6 +220,21 @@ public class Parser
             return true;
         else
             return false;
+    }
+
+    /**
+     *<func_list2> --> left_parenthesis <func> <func list>
+     */
+    private boolean func_list2()
+    {
+        look_ahead_token = getNextTokenWrapper();
+        if (look_ahead_token.getToken_value().equals(CSC512_Constants.LP))
+        {
+            consumed = true;
+            if (func() && func_list())
+                return true;
+        }
+        return false;
     }
 
     /**
@@ -368,7 +395,7 @@ public class Parser
             if (look_ahead_token.getToken_value().equals(CSC512_Constants.SC))
             {
                 consumed = true;
-                if (data_decls())
+                if (data_decls2())
                     return true;
             }
             return false;
@@ -377,8 +404,43 @@ public class Parser
     }
 
     /**
-     * 
+     * <data decls2> --> <type name> ID <data or func check>
+     *                  | empty
      */
+    private boolean data_decls2()
+    {
+        if (type_name())
+        {
+            look_ahead_token = getNextTokenWrapper();
+            if (isID(look_ahead_token))
+            {
+                consumed = true;
+                if (data_or_func_check())
+                    return true;
+            }
+            return false;
+        }
+        else
+            return true;
+    }
+
+    /**
+     * <data or func check> --> <data decls1>
+     *                          |<func_list2>
+     */
+    private boolean data_or_func_check()
+    {
+        look_ahead_token = getNextTokenWrapper();
+        if (look_ahead_token.getToken_value().equals(CSC512_Constants.LP))
+        {
+            if (func_list2())
+                return true;
+            return false;
+        }
+        else if (data_decls1())
+            return true;
+        return false;
+    }
 
     /**
      * <data decls> --> empty | <type name> <id list> semicolon <data decls>
@@ -390,6 +452,7 @@ public class Parser
         {
             if (id_list())
             {
+
                 variableCount++;
                 look_ahead_token = getNextTokenWrapper();
                 if (look_ahead_token.getToken_value().equals(CSC512_Constants.SC))
@@ -790,7 +853,7 @@ public class Parser
         if (look_ahead_token.getToken_value().equals(CSC512_Constants.COMMA))
         {
             consumed = true;
-            if (expression() && non_empty_list_dash())
+            if (expression() && non_empty_expr_list_dash())
             {
                 return true;
             }
@@ -1136,6 +1199,7 @@ public class Parser
         else
             return true;
     }
+    /*******************************************End of grammar implementation *****************************************/
 
 
     public static void main(String[] arg)
@@ -1143,7 +1207,7 @@ public class Parser
         //if (arg.length != 1)/* Argument check for file input */
         //{
           //  System.out.println("Please run the program as ");
-            System.out.println("Parser <input_C_file>");
+            //System.out.println("Parser <input_C_file>");
             //System.exit(CSC512_Constants.SUCCESS);
         //}
         java.util.Scanner cin = new java.util.Scanner(System.in);
