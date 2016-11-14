@@ -4,7 +4,9 @@ package ICG;
 import org.intellij.lang.annotations.Flow;
 import scanner.*;
 
+import java.io.File;
 import java.io.FileNotFoundException;
+import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.Map;
 import java.util.Stack;
@@ -43,6 +45,7 @@ public class ICG
     private int array_size;
     private int flow_index;
     private boolean isGlobalAArray;
+    boolean last_global_used;
     private Stack<String> operations = null;
     private Stack<String> values = null;
     private int local_var_count;
@@ -60,11 +63,17 @@ public class ICG
         flow_index = 0;
         local_var_count = 0;
         isGlobalAArray = false;
+        last_global_used = false;
         array_size = 0;
         operations = new Stack<>();
         values = new Stack<>();
         parameter_assign_code = new StringBuffer();
         LOGGER = Logger.getLogger(ICG.class.getCanonicalName());
+    }
+
+    public String getFinalCode()
+    {
+        return final_code.toString();
     }
 
     public int getVariableCount() {
@@ -130,10 +139,13 @@ public class ICG
     }
 
     /* Function Call */
-    public String getFuncToken(ArrayList<Token> func_call_token)
+    public String mergeToken(ArrayList<Token> token_array)
     {
         StringBuffer result_expr = new StringBuffer();
-        for(Token t : func_call_token)
+        //System.out.println("Last Read Token : " + last_read_var.getToken_value() + ":" + token_array.size() + ":" + token_array.get(token_array.size() - 1).getToken_value() + ":" + isGlobalAArray + ":" + vm.isPresent(true,last_read_var.getToken_value()));
+        //if(token_array.size() == 1 && token_array.get(0).getToken_value().matches("\\d+") && isGlobalAArray &&vm.isPresent(true,last_read_var.getToken_value()))
+          //  return "" + (Integer.parseInt(token_array.get(0).getToken_value()) + vm.getValue(true,last_read_var.getToken_value()));
+        for(Token t : token_array)
         {
             result_expr.append(t.getToken_value() + CSC512_Constants.SPACE);
             if(t.getToken_value().equals(CSC512_Constants.SC) || t.getToken_value().equals(CSC512_Constants.LBRC))
@@ -245,7 +257,10 @@ public class ICG
         if(token.getToken_type() == TokenType.RESERVED_WORD)
             last_read_res_kw = token;
         if(token.getToken_type() == TokenType.IDENTIFIER)
+        {
             last_read_var = token;
+            last_global_used = true;
+        }
     }
 
     /* Add to the global variable map */
@@ -300,7 +315,16 @@ public class ICG
         }
 
         if(expr_token_list.size() == 2 || expr_token_list.size() == 1) // For single token or signed token like -1 etc
-            return result_expr.toString();
+        {
+            //System.out.println("Last Read Token : " + last_read_var.getToken_value() + ":" + expr_token_list.size() + ":" + expr_token_list.get(expr_token_list.size() - 1).getToken_value() + ":" + isGlobalAArray + ":" + vm.isPresent(true,last_read_var.getToken_value()));
+            //if(last_global_used && expr_token_list.size() == 1 && expr_token_list.get(0).getToken_value().matches("\\d+") && isGlobalAArray &&vm.isPresent(true,last_read_var.getToken_value()))
+            //{
+              //  last_global_used = false;
+                //return "" + (Integer.parseInt(expr_token_list.get(0).getToken_value()) + vm.getValue(true, last_read_var.getToken_value()));
+            //}
+            //else
+                return result_expr.toString();
+        }
         values.clear();operations.clear();
 
         for(Token t : expr_token_list)
@@ -324,7 +348,7 @@ public class ICG
             else
                 values.push(t.getToken_value());
         }
-
+        System.out.println(!operations.isEmpty() + ":" + values.size());
         while (!operations.isEmpty() && values.size() >= 2)
             values.push(generate(operations.pop(),values.pop(),values.pop()));
         //if(values.size() > 1 || operations.size() != 0 || !values.peek().contains("local") || !values.contains("global"))
@@ -676,7 +700,7 @@ public class ICG
         System.out.println("data_decls1");
         if(id_list1(isGlobal))
         {
-            vm.addToMap(isGlobal,last_read_var.getToken_value());
+            //vm.addToMap(isGlobal,last_read_var.getToken_value());
             variableCount++;
             look_ahead_token = getNextTokenWrapper();
             if (look_ahead_token.getToken_value().equals(CSC512_Constants.SC))
@@ -839,24 +863,34 @@ public class ICG
      */
     private boolean id_dash(boolean isDecl)
     {
-        ArrayList<Token> arr_len = new ArrayList<>();
+        ArrayList<Token> expr_code = new ArrayList<>();
         System.out.println("id_dash");
         look_ahead_token = getNextTokenWrapper();
         if (look_ahead_token.getToken_value().equals(CSC512_Constants.LB))
         {
             if(!isDecl)
-                func_code_line.append(look_ahead_token.getToken_value());
-            consumed = true;
-            if (expression(arr_len))
             {
-                if(isDecl && arr_len.size() > 0 && arr_len.get(0).getToken_value().matches("\\d+"))
+                func_code_line.append(look_ahead_token.getToken_value());
+                if(vm.isPresent(true,last_read_var.getToken_value())) /* If global then handle array case */
                 {
-                    array_size += Integer.parseInt(arr_len.get(0).getToken_value().trim());
+                    expr_code.add(new Token(TokenType.NUMBER, "" + vm.getValue(true, last_read_var.getToken_value())));
+                    expr_code.add(new Token(TokenType.SYMBOL, "+"));
+                }
+            }
+            consumed = true;
+            if (expression(expr_code))
+            {
+                if(isDecl && expr_code.size() > 0 && expr_code.get(0).getToken_value().matches("\\d+"))
+                {
+                    vm.addToGlobal(last_read_var.getToken_value(),array_size);
+                    System.out.println("Got Global Variable");
+                    vm.printMap(true);
+                    array_size += Integer.parseInt(expr_code.get(0).getToken_value().trim());
                     System.out.println("Global Array Size : " + array_size);
                 }
                 else
                 {
-                    func_code_line.append(compute(arr_len));
+                    func_code_line.append(compute(expr_code));
                 }
                 look_ahead_token = getNextTokenWrapper();
                 if (look_ahead_token.getToken_value().equals(CSC512_Constants.RB))
@@ -1169,7 +1203,7 @@ public class ICG
                 {
                     expr_code.add(look_ahead_token);
                     //expr_code.add(new Token(TokenType.IDENTIFIER,"local[" + local_var_count++ + "]"));
-                    func_code_line.append(getFuncToken(expr_code));
+                    func_code_line.append(mergeToken(expr_code));
                     //expr_code.add(new Token(TokenType.IDENTIFIER,"local[" + local_var_count++ + "]"));
                     //func_code_line.append(look_ahead_token.getToken_value() + CSC512_Constants.SPACE);
                     consumed = true;
@@ -1610,7 +1644,7 @@ public class ICG
                 look_ahead_token = getNextTokenWrapper();
                 if (look_ahead_token.getToken_value().equals(CSC512_Constants.RP)) {
                     func_call_token.add(look_ahead_token);
-                    func_code.append("local[" + local_var_count + "] = " + getFuncToken(func_call_token) + CSC512_Constants.SC + CSC512_Constants.NEW_LINE);
+                    func_code.append("local[" + local_var_count + "] = " + mergeToken(func_call_token) + CSC512_Constants.SC + CSC512_Constants.NEW_LINE);
                     expr_code.add(new Token(TokenType.IDENTIFIER,"local[" + local_var_count++ + "]"));
                     consumed = true;
                     return true;
@@ -1620,19 +1654,24 @@ public class ICG
         } else if (look_ahead_token.getToken_value().equals(CSC512_Constants.LB)) {
             //addVaribaleToCode(expr_code,false, last_read_var);
             expr_code.add(look_ahead_token);
-            func_code_line.append(getFuncToken(expr_code));
+            func_code_line.append(mergeToken(expr_code));
             expr_code.clear();
             //func_code_line.append(last_read_var.getToken_value() + CSC512_Constants.SPACE);
+            if(vm.isPresent(true,last_read_var.getToken_value())) /* If global then handle array case */
+            {
+                expr_code.add(new Token(TokenType.NUMBER, "" + vm.getValue(true, last_read_var.getToken_value())));
+                expr_code.add(new Token(TokenType.SYMBOL, "+"));
+            }
             consumed = true;
             if (expression(expr_code)) {
                 //func_code_line.append(compute(expr_code));
-                func_code_line.append(getFuncToken(expr_code));
+                func_code_line.append(compute(expr_code));
                 //func_code_line.append(expr_code);
                 expr_code.clear();
                 look_ahead_token = getNextTokenWrapper();
                 if (look_ahead_token.getToken_value().equals(CSC512_Constants.RB)) {
                     expr_code.add(look_ahead_token);
-                    func_code_line.append(getFuncToken(expr_code));
+                    func_code_line.append(mergeToken(expr_code));
                     expr_code.clear();
                     consumed = true;
                     return true;
@@ -1660,14 +1699,19 @@ public class ICG
         //}
         java.util.Scanner cin = new java.util.Scanner(System.in);
         String file_name = cin.next();
+        String op_file = null;
+        PrintWriter op = null; /* Output file handler */
         ICG parser = null;
         try
         {
             parser = new ICG(file_name);
+            op_file = parser.scan.getTargetFileName();
+            op = new PrintWriter(new File(op_file));
             if (parser.isParsable())
             {
                 System.out.println(CSC512_Constants.PASS + " variable " + parser.getVariableCount() + " function " +
                         parser.getFunctionCount() + " statement " + parser.getStatementCount());
+                op.write(parser.getFinalCode());
             }
             else
             {
@@ -1678,6 +1722,11 @@ public class ICG
         {
             e.printStackTrace();
         }
-        System.out.println(parser.final_code.toString());
+        finally
+        {
+            op.flush();
+            op.close();
+        }
+        System.out.println(parser.getFinalCode());
     }
 }
