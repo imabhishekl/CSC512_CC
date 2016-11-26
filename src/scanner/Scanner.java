@@ -32,6 +32,7 @@ public class Scanner
     private StringBuffer token_string;
     private char extra_char_read; /* Extra character storage if read in current token not belonging to it*/
     private Token default_Error_Token;
+    private String in_file_name = null;
     char buffer[] = null;
     int buffer_index = 0;
     int buffer_length = -1;
@@ -50,7 +51,7 @@ public class Scanner
     private void openInStream()throws FileNotFoundException
     {
         Charset encode = Charset.defaultCharset();
-        File in = new File(ifd.file_path);
+        File in = new File(this.in_file_name);
         InputStream in_stream = new FileInputStream(in);
         this.input_reader = new BufferedReader(new InputStreamReader(in_stream));
     }
@@ -58,6 +59,7 @@ public class Scanner
     /* Constructor for the class to open file and initialize the class */
     public Scanner(String in_file_name)throws FileNotFoundException
     {
+        this.in_file_name = in_file_name;
         ifd = new InputFileDetail();
         init();
         setFileDetail(in_file_name);
@@ -71,7 +73,7 @@ public class Scanner
             return;
 
         Path p = Paths.get(file_name);
-        ifd.file_path = file_name;
+        ifd.file_path = p.getParent().toString();
         ifd.file_name = p.getFileName().toString();
         ifd.only_name = ifd.file_name.split("\\.")[0];
         ifd.extension = ifd.file_name.split("\\.")[1];
@@ -83,7 +85,7 @@ public class Scanner
     {
         if(ifd.isSet)
         {
-            return ifd.only_name + CSC512_Constants.GENERATE_TAG + CSC512_Constants.DOT + ifd.extension;
+            return ifd.file_path + "/" + ifd.only_name + CSC512_Constants.GENERATE_TAG + CSC512_Constants.DOT + ifd.extension;
         }
         else
             return null;

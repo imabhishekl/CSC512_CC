@@ -12,7 +12,7 @@ public class Grammar
     private Set<Character> arithimatic_operators;
     private Set<String> reserved_keyword_list;
 
-    Grammar()
+    public Grammar()
     {
         brackets = new HashSet<>();
         reserved_keyword_list = new HashSet<>();
@@ -35,7 +35,7 @@ public class Grammar
 
         for(Op op : Op.values())
         {
-            brackets.add(op.getKeyword_value());
+            arithimatic_operators.add(op.getKeyword_value());
         }
     }
 

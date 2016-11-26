@@ -208,7 +208,7 @@ public class ICG
         }
         else
         {
-            func_code_line.append("int local[" + (vm.getMapSize(isGlobal) + 1) + "];" + CSC512_Constants.NEW_LINE);
+            func_code_line.append("int local[" + (vm.getMapSize(isGlobal)) + "];" + CSC512_Constants.NEW_LINE);
             local_var_count = vm.getMapSize(isGlobal);
         }
         if(parameter_assign_code.length() != 0)
@@ -339,8 +339,11 @@ public class ICG
                 if(!operations.isEmpty())
                     operations.pop();
             }
-            else if(t.getToken_value().equals("+") || t.getToken_value().equals("-") || t.getToken_value().equals("*") || t.getToken_value().equals("/"))
+            else if(t.getToken_value().equals("+") || t.getToken_value().equals("-") || t.getToken_value().equals("*") ||
+                    t.getToken_value().equals("/") || t.getToken_value().equals(","))
             {
+                if(t.getToken_value().equals(","))
+                    return result_expr.toString();
                 while(!operations.isEmpty() && precendence(t.getToken_value(),operations.peek()))
                     values.push(generate(operations.pop(),values.pop(),values.pop()));
                 operations.push(t.getToken_value());
@@ -1187,6 +1190,7 @@ public class ICG
     private boolean func_call()
     {
         ArrayList<Token> expr_code = new ArrayList<>();
+        ArrayList<Token> inner_expr = new ArrayList<>();
         System.out.println("func_call : " + last_read_var.getToken_value());
         look_ahead_token = getNextTokenWrapper();
         if (look_ahead_token.getToken_value().equals(CSC512_Constants.LP))
@@ -1195,15 +1199,15 @@ public class ICG
             expr_code.add(look_ahead_token);
             //func_code_line.append(look_ahead_token.getToken_value() + CSC512_Constants.SPACE);
             consumed = true;
-            if (expr_list(expr_code))
+            if (expr_list(inner_expr))
             {
                 //func_code_line.append(compute(expr_code));
                 look_ahead_token = getNextTokenWrapper();
                 if (look_ahead_token.getToken_value().equals(CSC512_Constants.RP))
                 {
-                    expr_code.add(look_ahead_token);
+                    //expr_code.add(look_ahead_token);
                     //expr_code.add(new Token(TokenType.IDENTIFIER,"local[" + local_var_count++ + "]"));
-                    func_code_line.append(mergeToken(expr_code));
+                    func_code_line.append(mergeToken(expr_code) + compute(inner_expr) + look_ahead_token.getToken_value());
                     //expr_code.add(new Token(TokenType.IDENTIFIER,"local[" + local_var_count++ + "]"));
                     //func_code_line.append(look_ahead_token.getToken_value() + CSC512_Constants.SPACE);
                     consumed = true;
@@ -1314,9 +1318,21 @@ public class ICG
      */
     private boolean condition_expression()
     {
+        StringBuffer expr = new StringBuffer();
+        StringBuffer expr1 = new StringBuffer();
         System.out.println("condition_expression");
-        if (condition() && condition_expressionZ())
+        if (condition(expr) && condition_expressionZ(expr1))
+        {
+            if(expr1.length() == 0)
+                func_code_line.append(expr);
+            else
+            {
+                func_code.append("local[" + local_var_count + "] = " + expr + CSC512_Constants.SC + CSC512_Constants.NEW_LINE);
+                func_code_line.append("local[" + local_var_count++ + "]" + expr1);
+                expr.append(expr1);
+            }
             return true;
+        }
         else
             return false;
     }
@@ -1325,17 +1341,25 @@ public class ICG
      *<condition expressionZ> --> empty |<condition op> <condition>
      *first(condition op) = double_and_sign,double_or_sign
      */
-    private boolean condition_expressionZ()
+    private boolean condition_expressionZ(StringBuffer expr)
     {
         System.out.println("condition_expressionZ");
+        StringBuffer logical = new StringBuffer();
+        StringBuffer expr1 = new StringBuffer();
         look_ahead_token = getNextTokenWrapper();
         if (look_ahead_token.getToken_value().equals(CSC512_Constants.DOUBLE_AND_SIGN) ||
                 look_ahead_token.getToken_value().equals(CSC512_Constants.DOUBLE_OR_SIGN))
         {
-            if (condition_op())
+            if (condition_op(logical))
             {
-                if (condition())
+                if (condition(expr1))
+                {
+                    //expr.append(logical);
+                    //expr.append(expr1);
+                    func_code.append("local[" + local_var_count + "] = " + expr1 + CSC512_Constants.SC + CSC512_Constants.NEW_LINE);
+                    expr.append(logical + " local[" + local_var_count++ + "]");
                     return true;
+                }
             }
             return false;
         }
@@ -1346,14 +1370,14 @@ public class ICG
     /**
      *<condition op> --> double_and_sign | double_or_sign
      */
-    private boolean condition_op()
+    private boolean condition_op(StringBuffer logical)
     {
         System.out.println("condition_op");
         look_ahead_token = getNextTokenWrapper();
         if (look_ahead_token.getToken_value().equals(CSC512_Constants.DOUBLE_AND_SIGN) ||
                 look_ahead_token.getToken_value().equals(CSC512_Constants.DOUBLE_OR_SIGN))
         {
-            func_code_line.append(CSC512_Constants.SPACE + look_ahead_token.getToken_value() + CSC512_Constants.SPACE);
+            logical.append(CSC512_Constants.SPACE + look_ahead_token.getToken_value() + CSC512_Constants.SPACE);
             consumed = true;
             return true;
         }
@@ -1363,19 +1387,24 @@ public class ICG
     /**
      *<condition> --> <expression> <comparison op> <expression>
      */
-    private boolean condition()
+    private boolean condition(StringBuffer expr)
     {
         ArrayList<Token> expr_code = new ArrayList<>();
+        StringBuffer comp = new StringBuffer();
         System.out.println("condition");
         if (expression(expr_code))
         {
-            func_code_line.append(compute(expr_code));
-            if(comparison_op())
+            expr.append(compute(expr_code));
+            if(comparison_op(comp))
             {
+                if(expr_code.size() == 0) // if expression was already consumed
+                    func_code_line.append(comp);
+                else
+                    expr.append(comp);
                 expr_code.clear();
                 if(expression(expr_code))
                 {
-                    func_code_line.append(compute(expr_code));
+                    expr.append(compute(expr_code));
                     return true;
                 }
             }
@@ -1386,13 +1415,13 @@ public class ICG
     /**
      *<comparison op> --> == | != | > | >= | < | <=
      */
-    private boolean comparison_op()
+    private boolean comparison_op(StringBuffer compr)
     {
         System.out.println("comparison_op");
         look_ahead_token = getNextTokenWrapper();
         if (bg.isCompOp(look_ahead_token.getToken_value()))
         {
-            func_code_line.append(look_ahead_token.getToken_value() + CSC512_Constants.SPACE);
+            compr.append(look_ahead_token.getToken_value());
             consumed = true;
             return true;
         }
@@ -1631,21 +1660,24 @@ public class ICG
      */
     private boolean factorZ(ArrayList<Token> expr_code) {
         ArrayList<Token> func_call_token = new ArrayList<>();
+        ArrayList<Token> inner_expr = new ArrayList<>();
+        int index = 0;
         System.out.println("factorZ");
         look_ahead_token = getNextTokenWrapper();
         if (look_ahead_token.getToken_value().equals(CSC512_Constants.LP)) {
             func_call_token.add(last_read_var);
             expr_code.remove(expr_code.size() - 1);
-            //func_code_line.append(last_read_var.getToken_value() + CSC512_Constants.SPACE);
-            //func_code_line.append(look_ahead_token.getToken_value() + CSC512_Constants.SPACE);
             func_call_token.add(look_ahead_token);
             consumed = true;
-            if (expr_list(func_call_token)) {
+            System.out.println(last_read_var.getToken_value());
+            if (expr_list(inner_expr)) {
                 look_ahead_token = getNextTokenWrapper();
                 if (look_ahead_token.getToken_value().equals(CSC512_Constants.RP)) {
-                    func_call_token.add(look_ahead_token);
-                    func_code.append("local[" + local_var_count + "] = " + mergeToken(func_call_token) + CSC512_Constants.SC + CSC512_Constants.NEW_LINE);
-                    expr_code.add(new Token(TokenType.IDENTIFIER,"local[" + local_var_count++ + "]"));
+                    //expr_code.add(new Token(TokenType.IDENTIFIER,compute(func_call_token)));
+                    index = local_var_count;
+                    func_code.append("local[" + local_var_count++ + "] = " + mergeToken(func_call_token) + compute(inner_expr) +
+                            look_ahead_token.getToken_value() + CSC512_Constants.SC + CSC512_Constants.NEW_LINE);
+                    expr_code.add(new Token(TokenType.IDENTIFIER,"local[" + index + "]"));
                     consumed = true;
                     return true;
                 }

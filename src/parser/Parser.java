@@ -11,7 +11,7 @@ import java.util.logging.Logger;
 
 /**
  * Created by abhishek on 9/26/16.
- * Parser class implementation to parse the file against a grammar
+ * ICG class implementation to parse the file against a grammar
  * It scanner functionality to scan the file for token and pass it to
  * the parser which uses the grammar scanned in recursive decent fashion
  *
@@ -1207,7 +1207,7 @@ public class Parser
         //if (arg.length != 1)/* Argument check for file input */
         //{
           //  System.out.println("Please run the program as ");
-            //System.out.println("Parser <input_C_file>");
+            //System.out.println("ICG <input_C_file>");
             //System.exit(CSC512_Constants.SUCCESS);
         //}
         java.util.Scanner cin = new java.util.Scanner(System.in);

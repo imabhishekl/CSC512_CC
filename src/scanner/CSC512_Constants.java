@@ -16,7 +16,12 @@ public class CSC512_Constants
     public static String EMPTY        = "";
     public static String PASS         = "PASS";
     public static String ERROR        = "ERROR";
+    public static String START        = "start";
+    public static String EXEC        = "exec";
+    public static String EXIT        = "exit";
+    public static String GOTO        = "goto";
 
+    public static String COLON = ":";
     public static String STAR_SIGN = "*";
     public static String FORWARD_SIGN = "/";
     public static String DOUBLE_AND_SIGN = "&&";
